@@ -37,10 +37,14 @@ public class CsvFileHandler {
 	private final String backupCSVFile = "/Backup";
 	private final String errorfolder = "/Error";
 	private final String successFileName = "/Customer_backup.csv";
+
+	private String exceptionMessage;
 	public void processFile(String fromFile, String toFile) throws IOException {
 		
 		List<Customer> customerList = parse(fromFile);
-		List<String> errorList = validateCustomers(customerList);
+		List<String> errorList;
+		if(!customerList.isEmpty()) {
+		errorList = validateCustomers(customerList);
 		if(!errorList.isEmpty()) {
 			LOGGER.info("Validation errors noticed while processing the file");
 			copyFiletoError(toFile, errorList);
@@ -48,7 +52,12 @@ public class CsvFileHandler {
 		}
 		else {
 			copyFiletoBackup(fromFile, toFile+backupCSVFile);
-			
+		}
+		}
+		else {
+			LOGGER.error("Exception occured while parsing the file or blank file recieved ");
+			errorList = new ArrayList<String>();
+			errorList.add(exceptionMessage);
 		}
 		
 	}
@@ -87,25 +96,6 @@ public class CsvFileHandler {
 		return fileCopied;
 	}
 
-	/*
-	 * public List<String> getData(String filePath, String titleToSearchFor) throws
-	 * IOException { LOGGER.info("parse data from csv file "); Path path =
-	 * Paths.get(filePath); if (Files.exists(path)) { List<String> lines =
-	 * Files.readAllLines(path, Charset.defaultCharset()); List<String> columns =
-	 * Arrays.asList(lines.get(0).split(",")); int titleIndex =
-	 * columns.indexOf(titleToSearchFor); List<String> values =
-	 * lines.stream().skip(1).map(line -> Arrays.asList(line.split(","))) .map(list
-	 * -> list.get(titleIndex)).filter(Objects::nonNull).filter(s ->
-	 * s.trim().length() > 0) .collect(Collectors.toList());
-	 * 
-	 * return values;
-	 * 
-	 * }
-	 * 
-	 * return new ArrayList<>();
-	 * 
-	 * }
-	 */
 
 	public List<Customer> parse(String filePath) {
 		LOGGER.info("Parsing  the csv file from path"+filePath); 
@@ -126,13 +116,11 @@ public class CsvFileHandler {
 				customer.setSsn(data[9]);
 				return customer;
 			}).collect(Collectors.toList());
-			//customerList.forEach(System.out::println);
 			return customerList;
-		} catch (IOException e) {
+		} 
+		catch(Exception e) {
 			e.printStackTrace();
-		} catch (CsvException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			exceptionMessage="Excpetion occured while parsing the file.May be invalid format/content. Please upload valid csv file with valid customer records";
 		}
 		return new ArrayList<Customer>();
 	}
@@ -142,7 +130,6 @@ public class CsvFileHandler {
 		Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 		List<String> errorList = new ArrayList<String>();
 		for (Customer customer: customerList) {
-		//LOGGER.info("Validating the customer"+customer); 
 		Set<ConstraintViolation<Customer>> violations = validator.validate(customer);
 		StringBuilder errorMessage = new StringBuilder("Error occured while validating the record of ")
 				.append(customer.getEmpID())
