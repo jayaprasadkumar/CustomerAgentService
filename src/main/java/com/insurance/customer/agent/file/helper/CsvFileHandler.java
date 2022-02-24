@@ -8,7 +8,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -24,7 +26,6 @@ import org.springframework.stereotype.Component;
 import com.insurance.customer.agent.file.model.Customer;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
-import com.opencsv.exceptions.CsvException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,7 +37,6 @@ public class CsvFileHandler {
 	
 	private final String backupCSVFile = "/Backup";
 	private final String errorfolder = "/Error";
-	private final String successFileName = "/Customer_backup.csv";
 
 	private String exceptionMessage;
 	public void processFile(String fromFile, String toFile) throws IOException {
@@ -66,7 +66,9 @@ public class CsvFileHandler {
 		String path = toFile+errorfolder;
 		File dir = new File(path);
 		dir.mkdirs();
-		File file = new File(toFile+errorfolder+"/Error.txt");
+		String time = new SimpleDateFormat("yyyyMMdd_HHmm").format(new Date());
+		String fileName = toFile+errorfolder+"/Error_"+time+".txt";
+		File file = new File(fileName);
 		FileWriter writer = new FileWriter(file.getAbsoluteFile()); 
 		for(String error: errorList) {
 			writer.write(error + System.lineSeparator());
@@ -76,12 +78,13 @@ public class CsvFileHandler {
 
 
 
-	private boolean copyFiletoBackup(String source, String target) {
-		boolean fileCopied = true;
+	private void copyFiletoBackup(String source, String target) {
 		Path src = Paths.get(source);
 		File destFile = new File(target);
 		destFile.mkdirs();
-		File backupFile = new File(target+successFileName);
+		String time = new SimpleDateFormat("yyyyMMdd_HHmm").format(new Date());
+		String fileName = "/Customer_"+time+".csv";
+		File backupFile = new File(target+fileName);
 		Path destPath = backupFile.toPath();
 		try {
 			if (Files.exists(src)) {
@@ -89,11 +92,9 @@ public class CsvFileHandler {
 				LOGGER.info("File copied to target folder");
 			}
 		} catch (Exception e) {
-			fileCopied = false;
 			e.printStackTrace();
 		}
 
-		return fileCopied;
 	}
 
 
